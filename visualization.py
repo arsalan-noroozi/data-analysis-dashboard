@@ -5,10 +5,23 @@ import numpy as np
 from sklearn.linear_model import LinearRegression
 
 def plot_histogram(df, col, show_kde=True):
-    data = df[col].dropna()
 
     # حذف پرت‌ها با IQR
-    Q1, Q3 = np.percentile(data, [25, 75])
+    raw = df[col]
+    numeric = pd.to_numeric(raw, errors="coerce").dropna()
+
+    if numeric.empty:
+        fig, ax = plt.subplots(figsize=(8, 5))
+        ax.text(0.5, 0.5, f"No numeric data available in column: {col}", ha="center", va="center")
+        ax.set_axis_off()
+        return fig
+
+    if len(numeric) >= 2:
+        Q1, Q3 = np.percentile(numeric, [25, 75])
+    else:
+        Q1 = Q3 = numeric.median()
+
+    data = numeric
     IQR = Q3 - Q1
     lower, upper = Q1 - 1.5 * IQR, Q3 + 1.5 * IQR
     filtered = data[(data >= lower) & (data <= upper)]
@@ -37,8 +50,8 @@ def plot_histogram(df, col, show_kde=True):
     )
 
     #خطوط میانگین و میانه
-    mean_val = filtered.mean()
-    median_val = filtered.median()
+    mean_val = numeric.mean()
+    median_val = numeric.median()
 
     ax.axvline(mean_val, color="#d62728", linestyle="--", linewidth=1.8,
                label=f"Mean: {mean_val:.2f}")
@@ -58,14 +71,21 @@ def plot_histogram(df, col, show_kde=True):
 def plot_boxplot(df, col):
 
     # اطمینان از عددی بودن داده
-    data = pd.to_numeric(df[col].dropna(), errors="coerce").dropna()
+    raw = df[col]
+    data = pd.to_numeric(raw, errors="coerce").dropna()
 
     if data.empty:
-        raise ValueError(f"No numeric data in column: {col}")
+        fig, ax = plt.subplots(figsize=(8, 5))
+        ax.text(0.5, 0.5, f"No numeric data available in column: {col}", ha="center", va="center")
+        ax.set_axis_off()
+        return fig
 
-    # محاسبه چارک‌ها و IQR و بازه‌ی whisker (براساس تعریف 1.5 * IQR)
-    Q1 = np.percentile(data, 25)
-    Q3 = np.percentile(data, 75)
+    if len(data) >= 2:
+        Q1 = np.percentile(data, 25)
+        Q3 = np.percentile(data, 75)
+    else:
+        Q1 = Q3 = data.median()
+
     IQR = Q3 - Q1
     lower_whisker = Q1 - 1.5 * IQR
     upper_whisker = Q3 + 1.5 * IQR
